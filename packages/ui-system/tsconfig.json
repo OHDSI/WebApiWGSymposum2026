@@ -1,0 +1,7 @@
+{
+  "extends": "@atlas-v3/shared-config/tsconfig.react.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

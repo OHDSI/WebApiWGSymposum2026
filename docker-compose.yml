@@ -1,0 +1,109 @@
+# Atlas V3 Hackathon Boilerplate — Docker Compose
+# Usage:
+#   docker compose up -d        # start all services
+#   docker compose down -v      # stop and remove volumes
+#
+# Services:
+#   postgres  — PostgreSQL 16 (OHDSI CDM / WebAPI schema store)
+#   webapi    — OHDSI WebAPI 3.x  (REST API on port 8080)
+#   atlas     — OHDSI Atlas        (Web UI  on port 8088)
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — backing database for WebAPI
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: atlas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ohdsi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ohdsi}
+      POSTGRES_DB: ${POSTGRES_DB:-ohdsi}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - atlas-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ohdsi} -d ${POSTGRES_DB:-ohdsi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # OHDSI WebAPI — Java REST API
+  # ---------------------------------------------------------------------------
+  webapi:
+    build:
+      context: ./docker/webapi
+      dockerfile: Dockerfile
+    container_name: atlas-webapi
+    restart: unless-stopped
+    environment:
+      # JDBC connection to the postgres service
+      DATASOURCE_DRIVERCLASSNAME: org.postgresql.Driver
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ohdsi}
+      DATASOURCE_USERNAME: ${POSTGRES_USER:-ohdsi}
+      DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ohdsi}
+      DATASOURCE_OHDSI_SCHEMA: ${OHDSI_SCHEMA:-ohdsi}
+      # Spring / Flyway settings
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: ${OHDSI_SCHEMA:-ohdsi}
+      FLYWAY_DATASOURCE_DRIVERCLASSNAME: org.postgresql.Driver
+      FLYWAY_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ohdsi}
+      FLYWAY_DATASOURCE_USERNAME: ${POSTGRES_USER:-ohdsi}
+      FLYWAY_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ohdsi}
+      FLYWAY_SCHEMAS: ${OHDSI_SCHEMA:-ohdsi}
+      # Security (disabled for hackathon sandbox)
+      SECURITY_CORS_ENABLED: "true"
+      SECURITY_ORIGIN: "*"
+    ports:
+      - "${WEBAPI_PORT:-8080}:8080"
+    networks:
+      - atlas-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/WebAPI/info || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # ---------------------------------------------------------------------------
+  # OHDSI Atlas — browser-based UI
+  # The official image serves on port 8080 internally (nginx).
+  # We map it to 8088 on the host to avoid conflict with WebAPI.
+  # ---------------------------------------------------------------------------
+  atlas:
+    build:
+      context: ./docker/atlas
+      dockerfile: Dockerfile
+    container_name: atlas-ui
+    restart: unless-stopped
+    environment:
+      # The URL the *browser* uses to reach WebAPI.
+      # Because Atlas is a client-side app, this must be reachable from the host.
+      WEBAPI_URL: ${WEBAPI_URL:-http://localhost:8080/WebAPI/}
+      ATLAS_INSTANCE_NAME: ${ATLAS_INSTANCE_NAME:-OHDSI Hackathon}
+    ports:
+      - "${ATLAS_PORT:-8088}:8080"
+    networks:
+      - atlas-net
+    depends_on:
+      webapi:
+        condition: service_healthy
+
+# ---------------------------------------------------------------------------
+# Shared resources
+# ---------------------------------------------------------------------------
+networks:
+  atlas-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local

@@ -1,0 +1,32 @@
+{
+  "name": "atlas-v3",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:starter-kit & npm run dev:reference-app",
+    "dev:mock": "npm run dev:mock:starter-kit & npm run dev:mock:reference-app",
+    "dev:starter-kit": "npm run dev -w apps/starter-kit",
+    "dev:reference-app": "npm run dev -w apps/reference-app",
+    "dev:mock:starter-kit": "npm run dev:mock -w apps/starter-kit",
+    "dev:mock:reference-app": "npm run dev:mock -w apps/reference-app",
+    "build": "npm run build -w packages/shared-config && npm run build -w packages/api-v3-client && npm run build -w packages/domain-core && npm run build -w packages/ui-system",
+    "build:apps": "npm run build -w apps/starter-kit && npm run build -w apps/reference-app",
+    "build:all": "npm run build && npm run build:apps",
+    "test": "vitest --run",
+    "clean": "npx -y rimraf node_modules packages/*/dist packages/*/node_modules apps/*/dist apps/*/node_modules"
+  },
+  "devDependencies": {
+    "@fast-check/vitest": "^0.1.6",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "fast-check": "^3.22.0",
+    "jsdom": "^24.1.3",
+    "msw": "^2.7.3",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.1.4"
+  }
+}

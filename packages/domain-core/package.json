@@ -1,0 +1,29 @@
+{
+  "name": "@atlas-v3/domain-core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./models": "./src/models/index.ts",
+    "./validators": "./src/validators/index.ts",
+    "./serializers": "./src/serializers/index.ts",
+    "./services": "./src/services/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@atlas-v3/shared-config": "*",
+    "@atlas-v3/api-v3-client": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
